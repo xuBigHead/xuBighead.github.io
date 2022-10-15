@@ -1,0 +1,647 @@
+# Lambda表达式
+在Java 8中，为了能够将行为参数化而引入了Lambda表达式。
+
+可以把Lambda表达式理解为简洁地表示可传递的匿名函数的一种方式：它没有名称，但它有参数列表、函数主体、返回类型，可能还有一个可以抛出的异常列表。
+
+## 语法
+Lambda表达式在Java语言中引入了`->`操作符，`->`操作符被称为Lambda表达式的操作符或者箭头操作符，它将Lambda表达式分为两部分：
+
+- 左侧部分指定了Lambda表达式需要的所有参数，Lambda表达式本质上是对接口的实现，Lambda表达式的参数列表本质上对应着接口中方法的参数列表。
+
+- 右侧部分指定了Lambda体，即Lambda表达式要执行的功能，Lambda体本质上就是接口方法具体实现的功能。
+
+Lambda表达式的参数列表的数据类型可以省略不写，因为JVM编译器能够通过上下文推断出数据类型，这就是`类型推断`。
+- 左侧部分只有一个参数时，小括号可以省略
+- Lambda表达式的参数列表的数据类型可以省略不写，因为JVM编译器能够通过上下文推断出数据类型，这就是“类型推断”
+
+```java
+public class LambdaTest {
+    public void completedLeft() {
+        // 类型String可以省略，由上下文进行类型推断；因为只有一个参数，小括号可以省略
+        Consumer<String> consumer = (String e) -> println(e.substring(3, 6));
+    }
+    
+    public void singleLeft() {
+        Consumer<String> consumer = e -> println(e.substring(3, 6));
+    }
+}
+```
+
+- 右侧部分只有一行语句时，大括号和`return`关键字可以省略
+```java
+public class LambdaTest {
+    public String completeRight() {
+        Supplier<String> supplier = () -> {
+            String result = new Random().nextInt(100) + "";
+            return result.substring(1);
+        };
+        return supplier.get();
+    }
+
+    public String simpleRight() {
+        Supplier<String> supplier = () -> new Random().nextInt(100) + "";
+        return supplier.get();
+    }
+}
+```
+
+- 无参无返回值
+```java
+public interface INoArgsAndNoReturn {
+    void execute();
+}
+```
+
+```java
+public class LambdaTest {
+    public void noArgsAndNoReturn() {
+        INoArgsAndNoReturn lambda = () -> println("execute lambda");
+        execute(lambda);
+    }
+
+    private void execute(INoArgsAndNoReturn lambda) {
+        lambda.execute();
+    }
+}
+```
+
+- 无参有返回值
+```java
+public interface INoArgsAndHasReturn {
+    String execute();
+}
+```
+
+```java
+public class LambdaTest {
+    public void noArgsAndHasReturn() {
+        INoArgsAndHasReturn lambda = () -> "return lambda result";
+        execute(lambda);
+    }
+
+    private void execute(INoArgsAndHasReturn lambda) {
+        println(lambda.execute());
+    }
+}
+```
+
+- 有参无返回值
+```java
+public interface IHasArgsAndNoReturn {
+    void execute(Integer one, Integer two);
+}
+```
+
+```java
+public class LambdaTest {
+    public void hasArgsAndNoReturn() {
+        IHasArgsAndNoReturn lambda = (a, b) -> println(a + b);
+        execute(lambda);
+    }
+
+    private void execute(IHasArgsAndNoReturn lambda) {
+        lambda.execute(1, 2);
+    }
+}
+```
+
+- 有参有返回值
+```java
+public interface IHasArgsAndHasReturn {
+    String execute(Integer one, Integer two);
+}
+```
+
+```java
+public class LambdaTest {
+    public void hasArgsAndHasReturn() {
+        execute((x, y) -> x + " " + y);
+    }
+
+    private void execute(IHasArgsAndHasReturn argsReturn) {
+        println(argsReturn.execute(1, 2));
+    }
+}
+```
+
+## 使用局部变量
+Lambda可以没有限制地捕获（也就是在其主体中引用）实例变量和静态变量。但局部变量必须显式声明为
+final，或事实上是 final 。
+
+### 对局部变量的限制
+第一，实例变量和局部变量背后的实现有一个关键不同。实例变量都存储在堆中，而局部变量则保存在栈上。如果Lambda可以直接访问局部变量，而且Lambda是在一个线程中使用的，则使用Lambda的线程，可能会在分配该变量的线程将这个变量收回之后，去访问该变量。因此，Java在访问自由局部变量时，实际上是在访问它的副本，而不是访问原始变量。如果局部变量仅仅赋值一次那就没有什么区别了——因此就有了这个限制。
+
+第二，这一限制不鼓励你使用改变外部变量的典型命令式编程模式，这种模式会阻碍很容易做到的并行处理。
+
+## 经验总结
+- lambda表达式通过传递代码，来使代码根据条件被延迟执行或不执行。
+- 多参数lambda通过创建匹配的函数式接口来实现。
+
+# 方法引用
+需要使用方法引用时，目标引用放在分隔符 :: 前，方法的名称放在后面。
+
+- 指向静态方法的方法引用
+```java
+@Test
+public void methodReferences(){
+    String str = "methodReferences";
+    // String的length方法是一个静态方法，可以直接引用
+    Optional.ofNullable(str).map(String::length);
+}
+```
+- 指向任意类型实例方法的方法引用
+
+指向任意类型实例方法的方法引用的思想就是在引用一个对象的方法，而这个对象本身就是Lambda的一个参数。
+
+```java
+@Test
+public void methodReferences(){
+    String str = "methodReferences";
+    // 对象 str 本身就是Lambda的参数，可以指向任意类型实例方法的方法引用替换
+    Optional.ofNullable(str).map(s -> s.toUpperCase());
+    Optional.ofNullable(str).map(String::toUpperCase);
+}
+```
+
+- 指向现有对象的实例方法的方法引用
+
+## 构造方法引用
+构造函数可以利用它的名称和关键字new来创建它的引用：ClassName::new 。功能与指向静态方法的引用类似。
+
+```java
+@Test
+public void constructorMethodReferences(){
+    // ArrayList就可以通过构造器来建立方法引用 ArrayList::new
+    Supplier<List<String>> supplier = ArrayList::new;
+    List<String> list = supplier.get();
+}
+```
+
+# 接口默认方法
+Java 8中接口添加了一个默认方法的新特性，为的是提供一个扩充接口而不会破坏现有代码的方式。
+
+接口中的默认方法用 `default` 来表示，如下所示：
+
+> java.util.Collection
+```java
+public interface Collection<E> extends Iterable<E> {
+    // Collection 接口新增了获取并行流的默认方法，使得所有实现了 Collection 接口的类不在需要实现该方法即可调用
+    default Stream<E> parallelStream() {
+        return StreamSupport.stream(spliterator(), true);
+    }
+}
+```
+
+## JDK源码解析
+
+
+# 函数式编程
+
+## 基础概念
+- 函数式编程FP(Functional Programming) 
+
+  函数式编程是一种编程范式（programming paradigm），追求的目标是整个程序都由函数调用（function applying）以及函数组合（function composing）构成的。
+
+- 纯函数(purely function)
+
+  当参数值不变的时候，多次运行函数，得到的结果总是一样的函数为纯函数。
+
+- 面向对象编程OOP(Object Oriented Programming) 
+
+### FP和OOP的区别
+
+  OOP的精髓在于“封装对象”，而FP的精髓在于“不涉及外部状态”。
+
+  一门开发语言，可以既支持OOP，同时也支持FP，两者并不是矛盾的。
+
+## 函数式编程的特性
+- 函数是“第一等公民”（first-class citizens）
+
+  函数和其它数据类型具备同等的地位，可以给变量赋值，作为函数的参数或返回值。
+
+- 没有“副作用”（side effects）
+
+  “副作用（side effects）”，指的是函数在执行的时候，除了得出计算结果之外，还会改变函数以外的状态。“副作用”的典型场景就是修改了程序的全局变量（譬如Java中某个全局可见的类的属性值、某个类的静态变量等等）；修改传入的参数也属于“副作用”之一；IO操作或调用其它有“副作用”的函数也属于“副作用”。
+
+  函数式编程中要求函数都是“纯函数（purely function）”。给定了参数后，多次运行纯函数，总会得到相同的返回值，而且它不会修改函数以外的状态或产生其它的“副作用”。
+
+- 引用透明（Referential transparency）
+
+  引用透明（Referential transparency），指的是函数的运行不依赖于外部状态或外部变量，只依赖于输入的参数。任何时候只要参数相同，运行函数所得到的返回值总是相同的。
+
+## 函数式编程的优点
+- 便于单元测试和调试（Debugging）
+
+  由于函数式编程的“没有副作用”和“引用透明”的特点，每个函数都是一个独立的逻辑单元，不依赖于外部的状态或变量，也不修改外部的状态或变量。给定了参数后，多次运行函数，总会得到相同的返回值。这对单元测试者以及调试者来说，简直是最理想的情形。
+
+- 易于“并发编程”
+
+  同样的，函数式编程不依赖于也不会修改外部的状态或变量，因此我们不需要考虑多线程的并发竞争、死锁等问题，因为我们根本不需要加“锁”。这样，并发编程的复杂度将大大降低，部署也非常方便。
+
+  在大数据和多核时代，这个优点被更大的放大了，这也是函数式编程思想焕发活力的主要原因。
+
+
+## 参考资料
+- [Java中的函数式编程（一）概念](https://www.cnblogs.com/anyuanwai/p/15422449.html)
+
+# 函数式接口
+## 函数式接口定义及应用
+只包含一个抽象方法的接口，允许有默认实现方法和静态实现方法的接口称为函数式接口。
+
+与普通接口只能通过类来实现不同，函数式接口的实现还可以是一个lambda表达式，甚至可以是一个方法引用（method reference）。
+
+### @FunctionalInterface注解
+可以在函数式接口上使用 `@FunctionalInterface` 注解，标注它是一个函数式接口，同时javadoc也会包
+含一条声明，说明这个接口是一个函数式接口。
+
+如果被 `@FunctionalInterface` 标注的接口不是一个函数式接口，编译器将返回一个提示原因的错误。
+
+```java
+@FunctionalInterface
+public interface ICalculator<M, N, R> {
+    /**
+     * 函数式接口只有一个抽象方法
+     */
+    R calculate(M m, N n);
+
+    /**
+     * 函数式接口可以有实现的默认方法
+     */
+    default void defaultPrint(R result){
+        PrintUtil.println("默认方法输出结果：" + result);
+    }
+
+    /**
+     * 函数式接口可以有实现的静态方法
+     */
+    static void staticPrint(String result){
+        PrintUtil.println("静态方法输出结果：" + result);
+    }
+}
+```
+
+```java
+public class CalculatorDemo {
+    public static void main(String[] args) {
+        ICalculator<Integer, Integer, Integer> calculator = (x, y) -> x * 10 + y;
+        // 执行函数式接口ICalculator的calculate方法
+        Integer result = calculator.calculate(1, 2);
+        // 执行函数式接口的默认方法
+        calculator.defaultPrint(result);
+        // 执行函数式接口的静态方法
+        ICalculator.staticPrint(result.toString());
+    }
+}
+```
+
+
+## JDK函数式接口
+### 核心函数式接口
+| 函数式接口 | 参数类型 | 返回类型 | 描述                                                         |
+| ---------- | -------- | -------- | ------------------------------------------------------------ |
+| Consumer   | T        | void     | 对类型为T的对象应用操作。                                    |
+| Supplier   | 无       | T        | 返回类型为T的对象。                                          |
+| Function   | T        | R        | 对类型为T的对象应用操作，并R类型的返回结果。                 |
+| Predicate  | T        | boolean  | 确定类型为T的对象是否满足约束条件，并返回boolean类型的数据。 |
+
+#### Consumer接口
+##### Consumer接口源码
+> java.util.function.Consumer
+```java
+@FunctionalInterface
+public interface Consumer<T> {
+    void accept(T t);
+    default Consumer<T> andThen(Consumer<? super T> after) {
+        Objects.requireNonNull(after);
+        return (T t) -> { accept(t); after.accept(t); };
+    }
+}
+```
+
+##### Consumer接口用例
+```java
+public class ConsumerDemo {
+    public static void main(String[] args) {
+        String product = "产品";
+        Consumer<String> consumer1 = str -> PrintUtil.println(str.concat("被消费了"));
+        consumer1.accept(product);
+
+        Consumer<String> consumer2 = str -> PrintUtil.print(str.concat("已售空，无法消费"));
+        // 先执行对象consumer1的accept方法，在执行consumer2的accept方法
+        consumer1.andThen(consumer2).accept(product);
+    }
+}
+```
+
+#### Supplier接口
+##### Supplier接口源码
+> java.util.function.Supplier
+```java
+@FunctionalInterface
+public interface Supplier<T> {
+    T get();
+}
+```
+
+##### Supplier接口用例
+```java
+public class SupplierDemo {
+    public static void main(String[] args) {
+        Supplier<Integer> supplier = () -> new Random().nextInt(100);
+        PrintUtil.println("生成100以内随机数：" + supplier.get());
+    }
+}
+```
+
+#### Function接口
+##### Function接口源码
+> java.util.function.Function
+```java
+@FunctionalInterface
+public interface Function<T, R> {
+    R apply(T t);
+
+    default <V> Function<V, R> compose(Function<? super V, ? extends T> before) {
+        Objects.requireNonNull(before);
+        return (V v) -> apply(before.apply(v));
+    }
+
+    default <V> Function<T, V> andThen(Function<? super R, ? extends V> after) {
+        Objects.requireNonNull(after);
+        return (T t) -> after.apply(apply(t));
+    }
+
+    static <T> Function<T, T> identity() {
+        return t -> t;
+    }
+}
+```
+
+##### Function接口用例
+```java
+public class FunctionDemo {
+    public static void main(String[] args) {
+        Function<Integer, String> function = x -> "生成指定范围内的随机数：" + new Random().nextInt(x);
+        PrintUtil.println(function.apply(10));  
+    }
+}
+```
+
+#### Predicate接口
+##### Predicate接口源码
+> java.util.function.Predicate
+```java
+@FunctionalInterface
+public interface Predicate<T> {
+    boolean test(T t);
+
+    default Predicate<T> and(Predicate<? super T> other) {
+        Objects.requireNonNull(other);
+        return (t) -> test(t) && other.test(t);
+    }
+
+    default Predicate<T> negate() {
+        return (t) -> !test(t);
+    }
+
+    default Predicate<T> or(Predicate<? super T> other) {
+        Objects.requireNonNull(other);
+        return (t) -> test(t) || other.test(t);
+    }
+
+    static <T> Predicate<T> isEqual(Object targetRef) {
+        return (null == targetRef)
+                ? Objects::isNull
+                : targetRef::equals;
+    }
+}
+```
+
+##### Predicate接口用例
+```java
+
+```
+
+
+### 原始类型特化函数式接口
+Java 8在现有的函数式接口的基础上还提供了几种原始类型特化的函数式接口。这类函数式接口在输入输出时都是原始类型，避免了自动装箱的操作，从而提高了性能。
+
+下表是一些常用函数式接口及其原始类型特化后的函数式接口对应表。
+
+| 函数式接口         | 函数描述符     | 原始类型特化                                                 |
+| ------------------ | -------------- | ------------------------------------------------------------ |
+| Predicate<T\>      | T->boolean     | IntPredicate,<br/>LongPredicate, <br/>DoublePredicate        |
+| Consumer<T\>       | T->void        | IntConsumer,<br/>LongConsumer,<br/>DoubleConsumer            |
+| Function<T,R>      | T->R           | IntFunction<R\>,<br/>IntToDoubleFunction,<br/>IntToLongFunction,<br/>LongFunction<R\>,<br/>LongToDoubleFunction,<br/>LongToIntFunction,<br/>DoubleFunction<R\>,<br/>ToIntFunction<T\>,<br/>ToDoubleFunction<T\>,<br/>ToLongFunction<T\> |
+| Supplier<T\>       | ()->T          | BooleanSupplier,<br/>IntSupplier, <br/>LongSupplier,<br/>DoubleSupplier |
+| UnaryOperator<T\>  | T->T           | IntUnaryOperator,<br/>LongUnaryOperator,<br/>DoubleUnaryOperator |
+| BinaryOperator<T\> | (T,T)->T       | IntBinaryOperator,<br/>LongBinaryOperator,<br/>DoubleBinaryOperator |
+| BiPredicate<L,R>   | (L,R)->boolean |                                                              |
+| BiConsumer<T,U>    | (T,U)->void    | ObjIntConsumer<T\>,<br/>ObjLongConsumer<T\>,<br/>ObjDoubleConsumer<T\> |
+| BiFunction<T,U,R>  | (T,U)->R       | ToIntBiFunction<T,U>,<br/>ToLongBiFunction<T,U>,<br/>ToDoubleBiFunction<T,U> |
+
+### 其他函数式接口
+
+## 参考资料
+- [Java中的函数式编程（二）函数式接口Functional Interface](https://www.cnblogs.com/anyuanwai/p/15429735.html)
+
+
+# Stream API
+> @since Java8
+
+Stream具备如下特点：
+
+- 非集合，无法存储元素；
+
+- 不改变源对象，而是返回一个持有结果的新Stream；
+
+- 操作是延迟执行的，必须知道有哪些数据才会继续往下执行，即会等到需要结果时才执行；
+
+- 只执行一次，如果要继续操作则需要重新获取Stream对象；
+
+- 类似高级的iterator，单向不可重复，数据只能遍历一次，但是可以并行化数据。
+
+
+
+## 串行流和并行流
+
+
+
+## 创建操作
+
+常见的创建流的方式有如下几种：
+
+- java.util.Collection#stream
+
+```java
+    default Stream<E> stream() {
+        return StreamSupport.stream(spliterator(), false);
+    }
+```
+
+- java.util.Arrays#stream(T[])
+
+java.util.stream类中的of(T...)方法的实现就是调用的Arrays类的stream(T[])方法。
+
+```java
+    public static <T> Stream<T> stream(T[] array) {
+        return stream(array, 0, array.length);
+    }
+```
+
+- java.util.stream.Stream#of(T)
+
+```java
+    public static<T> Stream<T> of(T t) {
+        return StreamSupport.stream(new Streams.StreamBuilderImpl<>(t), false);
+    }
+```
+
+
+
+所有上述创建流的方法都是最终调用了java.util.stream.StreamSupport#stream(java.util.Spliterator<T>, boolean)来创建流
+
+```java
+    /*
+     * @param spliterator 表示流中元素的描述
+     * @param parallel 为true表示创建并行流，否则创建串行流
+     */
+    public static <T> Stream<T> stream(Spliterator<T> spliterator, boolean parallel) {
+        Objects.requireNonNull(spliterator);
+        return new ReferencePipeline.Head<>(spliterator,
+                                            StreamOpFlag.fromCharacteristics(spliterator),
+                                            parallel);
+    }
+```
+
+
+
+### 代码示例
+
+```java
+    public void build() {
+        Stream<Integer> listStream = Lists.newArrayList(1, 2, 3).stream();
+
+        Integer[] arr = {1, 2, 3};
+        Stream<Integer> arrayStream = Arrays.stream(arr);
+
+        Stream<Integer> singleStream = Stream.of(1);
+    }
+```
+
+
+
+## 聚合操作
+
+### peek
+
+用于 debug 调试流中间结果，不能形成新的流，但能修改引用类型字段的值。
+
+
+
+> java.util.stream.Stream
+
+```java
+Stream<T> peek(Consumer<? super T> action);
+```
+
+
+
+#### Demo
+
+```java
+@Test
+public void peekTest(){
+    List<StreamBean> beans = beans().stream()
+        // peek方法用于调试流中的元素状态或修改该元素，并返回新的流
+        .peek(bean -> bean.setTitle("state : " + bean.getTitle()))
+        .collect(Collectors.toList());
+    beans.forEach(System.err::println);
+}
+```
+
+
+
+### map
+
+用于对流中的每个元素进行映射处理，然后再形成新的流。
+
+
+
+> java.util.stream.Stream
+
+```java
+<R> Stream<R> map(Function<? super T, ? extends R> mapper);
+```
+
+
+
+#### Demo
+
+```java
+@Test
+public void mapTest(){
+    List<Integer> lengths = beans().stream()
+        // map方法用于将流中的元素映射为其他类型的对象
+        .map(StreamBean::getLength).collect(Collectors.toList());
+}
+```
+
+
+
+## 终结操作
+
+### foreach
+
+用于遍历，会中断流操作。
+
+
+
+> java.util.stream.Stream
+
+```java
+void forEach(Consumer<? super T> action);
+```
+
+
+
+#### Demo
+
+```java
+@Test
+public void foreachTest(){
+    // map方法用于操作流中的元素，并结束流
+    beans().forEach(System.err::println);
+}
+```
+
+
+
+
+## 常见应用
+
+### 递归构建树形结构
+
+```java
+    public void buildTree() {
+        List<StreamNode> nodes = getTreeElementList();
+        // 创建根节点
+        StreamNode rootNode = new StreamNode(1L, 0L);
+        println(JSON.toJSONString(covert(rootNode, nodes), true));
+    }
+
+    private StreamNode covert(StreamNode rootNode, List<StreamNode> nodes) {
+        // 递归获取子节点
+        List<StreamNode> children = nodes.stream()
+            .filter(node -> node.getParentId().equals(rootNode.getId()))
+            .map(node -> covert(node, nodes)).collect(Collectors.toList());
+        rootNode.setChildren(children);
+        return rootNode;
+    }
+```
+
+
+
+## 参考资料
+
+- [Java8 Stream groupingBy对List进行分组](https://blog.csdn.net/weixin_41835612/article/details/83687088)
