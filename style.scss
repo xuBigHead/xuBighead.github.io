@@ -519,11 +519,12 @@ nav {
 .toc {
   width: 240px;
   height: 100%;
-  left: 30%;
+  left: 15%;
   position: fixed;
   z-index: 4;
   padding: 60px 20px 0 20px;
-  
+  overflow-y: scroll;
+
   &:before{
     content:"目录";
     margin: 0 0 1em 1em;
